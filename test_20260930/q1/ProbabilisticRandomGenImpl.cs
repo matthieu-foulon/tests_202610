@@ -12,7 +12,6 @@ namespace hsbc_test_20260930.q1;
 public class ProbabilisticRandomGenImpl : ProbabilisticRandomGen
 {
     private readonly NumAndProbability[] _thresholdData;
-    private readonly Random _random = new();
 
     public ProbabilisticRandomGenImpl(List<NumAndProbability> inputData)
     {
@@ -39,7 +38,7 @@ public class ProbabilisticRandomGenImpl : ProbabilisticRandomGen
 
     public int nextFromSample()
     {
-        float rand = (float)_random.NextDouble();
+        float rand = Random.Shared.NextSingle();
         int index = Array.BinarySearch(_thresholdData, rand, new ProbabilisticClass());
         if ( index < 0 )
         {

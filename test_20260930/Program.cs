@@ -13,9 +13,11 @@ namespace hsbc_test_20260930
 
             ProbabilisticRandomGenImpl prgi = new(probs);
             ProbabilisticRandomGenImpl2 prgi2 = new(probs);
+            ProbabilisticRandomGenImpl3 prgi3 = new(probs, 1024);
             Dictionary<int, int> results = new();
             Dictionary<int, int> results2 = new();
-            int total = 100000000;
+            Dictionary<int, int> results3 = new();
+            int total = 1_000_000_000;
             for ( int i = 0; i < total; i++ )
             {
                 int r = prgi.nextFromSample();
@@ -37,19 +39,27 @@ namespace hsbc_test_20260930
                 {
                     results2[r2]++;
                 }
+
+                int r3 = prgi3.nextFromSample();
+                if ( !results3.ContainsKey(r3) )
+                {
+                    results3[r3] = 1;
+                }
+                else
+                {
+                    results3[r3]++;
+                }
             }
 
-            foreach( var r in results )
+            foreach(var p in probs)
             {
-                Console.WriteLine($"{r.Key}, count {r.Value}, {(float)r.Value / total}%");
+                Console.WriteLine($"{p.Number} :");
+                Console.WriteLine($"    count {results[p.Number]}, {(float)results[p.Number] / total}%");
+                Console.WriteLine($"    count {results2[p.Number]}, {(float)results2[p.Number] / total}%");
+                Console.WriteLine($"    count {results3[p.Number]}, {(float)results3[p.Number] / total}%");
             }
 
-            foreach ( var r in results2 )
-            {
-                Console.WriteLine($"{r.Key}, count {r.Value}, {(float)r.Value / total}%");
-            }
-
-            Console.WriteLine("Hello, World!");
+            Console.WriteLine("That's all folks !");
         }
     }
 }

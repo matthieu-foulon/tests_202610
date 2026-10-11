@@ -10,12 +10,14 @@ namespace hsbc_test_20260930.q1;
 /// </summary>
 public class ProbabilisticRandomGenImpl2 : ProbabilisticRandomGen
 {
-    private readonly int[] _filteredData = new int[1000001];
-    private readonly Random _random = new();
+    const int ArraySize = 1000000;
+    private readonly int[] _filteredData = new int[ArraySize];
 
     public ProbabilisticRandomGenImpl2(List<NumAndProbability> inputData)
     {
+        // we will scale if the sum of all probabilities is not 1
         float sum = inputData.Sum(i => i.ProbabilityOfSample);
+
         float acc = 0f;
         int startIndex = 0;
         for(int i = 0; i < inputData.Count; ++i)
@@ -26,7 +28,7 @@ public class ProbabilisticRandomGenImpl2 : ProbabilisticRandomGen
                 acc = 1.0f;
             }
 
-            int endIndex = (int)( acc * 1000000 );
+            int endIndex = (int)( acc * ArraySize );
             for( ; startIndex < endIndex; ++startIndex )
             {
                 _filteredData[startIndex] = inputData[i].Number;
@@ -36,7 +38,7 @@ public class ProbabilisticRandomGenImpl2 : ProbabilisticRandomGen
 
     public int nextFromSample()
     {
-        int index = (int)( _random.NextSingle() * 1000000 );
+        int index = Random.Shared.Next(ArraySize);
         return _filteredData[index];
     }
 }

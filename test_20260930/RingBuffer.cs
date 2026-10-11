@@ -4,7 +4,18 @@ using System.Text;
 
 namespace hsbc_test_20260930;
 
-public class RingBuffer<T>
+public interface IRingBuffer<T>
+{
+    int Capacity { get; }
+    bool Empty { get; }
+    int Length { get; }
+
+    bool TryGet(out T value);
+    bool TryPeek(out T value);
+    bool Put(T value);
+}
+
+public class RingBuffer<T> : IRingBuffer<T>
 {
     private readonly T[] _data;
     private int _size;
@@ -18,12 +29,12 @@ public class RingBuffer<T>
 
     public int Capacity => _data.Length;
     public int Length => _size;
-    public bool Empty => Length != 0;
+    public bool Empty => Length == 0;
 
     public bool Put(T value)
     {
         // early return, no more available space, caller decides what to do
-        if(_size == _data.Length)
+        if ( _size == _data.Length )
         {
             return false;
         }
@@ -32,7 +43,7 @@ public class RingBuffer<T>
         _data[_writeIndex++] = value;
 
         // wrap index
-        if (_writeIndex == _data.Length)
+        if ( _writeIndex == _data.Length )
         {
             _writeIndex = 0;
         }
@@ -43,12 +54,13 @@ public class RingBuffer<T>
         return true;
     }
 
-    public T? Get()
+    public bool TryGet(out T value)
     {
         // early return, nothing available
-        if(_size == 0)
+        if ( _size == 0 )
         {
-            return default;
+            value = default!;
+            return false;
         }
 
         // retrieve element, remove its reference from the container and increment read index
@@ -56,7 +68,7 @@ public class RingBuffer<T>
         _data[_readIndex++] = default!;
 
         // wrap index
-        if (_readIndex == _data.Length)
+        if ( _readIndex == _data.Length )
         {
             _readIndex = 0;
         }
@@ -64,18 +76,21 @@ public class RingBuffer<T>
         // for size direct access
         --_size;
 
-        return result;
+        value = result;
+        return true;
     }
 
-    public T? Peek()
+    public bool TryPeek(out T value)
     {
         // early return, nothing available
         if ( _size == 0 )
         {
-            return default;
+            value = default!;
+            return false;
         }
 
         // retrieve element, no other action
-        return _data[_readIndex];
+        value = _data[_readIndex];
+        return true;
     }
 }

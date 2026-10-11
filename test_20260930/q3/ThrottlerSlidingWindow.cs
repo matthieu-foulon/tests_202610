@@ -75,9 +75,9 @@ public class ThrottlerSlidingWindow
         DateTime timeThreshold = now - _timeSpan;
 
         // trash all data before timeThreshold
-        while ( !_slidingWindow.Empty && _slidingWindow.Peek() < timeThreshold )
+        while ( _slidingWindow.TryPeek(out var peek) && peek < timeThreshold )
         {
-            _slidingWindow.Get();
+            _slidingWindow.TryGet(out var _);
         }
     }
 }

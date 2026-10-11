@@ -100,6 +100,7 @@ public class EventBusMT : EventBus
             subscribers = [.. list];
         }
 
+        // not exception safe + check against slow consumer
         foreach ( var subscriber in subscribers )
         {
             subscriber.Handle(message);
