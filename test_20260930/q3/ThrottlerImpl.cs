@@ -16,6 +16,8 @@ public class ThrottlerImpl : Throttler
     private DateTime _lastRefillTime;
     private int _isStarted = 0;
 
+    public event EventHandler? OnTokenAvailable;
+
     /// <summary>
     ///
     /// </summary>
@@ -59,6 +61,8 @@ public class ThrottlerImpl : Throttler
         }
     }
 
+    private bool HasAvailableToken => _tokens > 1.0;
+
     private void Update(CancellationToken token)
     {
         while ( !token.IsCancellationRequested )
@@ -73,10 +77,11 @@ public class ThrottlerImpl : Throttler
 
                     _tokens = Math.Min(_maxTokens, _tokens + elapsed * _refillRate);
 
-                    if ( _tokens > 1.0 )
+                    // only correct if one and only one subcriber
+                    if ( OnTokenAvailable != null && HasAvailableToken )
                     {
                         _tokens -= 1.0;
-                        notifyWhenCanProceed();
+                        OnTokenAvailable.Invoke(this, EventArgs.Empty);
                     }
                 }
 
@@ -98,10 +103,6 @@ public class ThrottlerImpl : Throttler
                 return (int)_tokens;
             }
         }
-    }
-
-    public virtual void notifyWhenCanProceed()
-    {
     }
 
     public Throttler.ThrottleResult shouldProceed()

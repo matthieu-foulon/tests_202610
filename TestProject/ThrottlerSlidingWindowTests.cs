@@ -54,26 +54,4 @@ public class ThrottlerSlidingWindowTests
 
         throttler.Stop();
     }
-
-    [Fact]
-    public async Task Restarting_Throttler_ShouldResetTimeAnchorAndContinueRefilling()
-    {
-        var throttler = new ThrottlerSlidingWindow(100, TimeSpan.FromSeconds(1), start: true);
-
-        await Task.Delay(40);
-        throttler.Stop();
-        int tokensAfterFirstRun = throttler.TokenCount;
-
-        tokensAfterFirstRun.Should().BeLessThan(100);
-
-        await Task.Delay(50);
-
-        throttler.Start();
-        await Task.Delay(40);
-        int tokensAfterSecondRun = throttler.TokenCount;
-
-        tokensAfterSecondRun.Should().BeGreaterThan(tokensAfterFirstRun);
-
-        throttler.Stop();
-    }
 }

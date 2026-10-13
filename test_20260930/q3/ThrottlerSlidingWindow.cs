@@ -86,10 +86,6 @@ public class ThrottlerSlidingWindow : Throttler
         }
     }
 
-    public virtual void notifyWhenCanProceed()
-    {
-    }
-
     private bool HasAvailableToken => _slidingWindow.Length < _maxTokens;
 
     private void Update(CancellationToken token)
@@ -104,6 +100,7 @@ public class ThrottlerSlidingWindow : Throttler
 
                     Clean(now);
 
+                    // only correct if one and only one subcriber
                     if ( OnTokenAvailable != null && HasAvailableToken )
                     {
                         _slidingWindow.Put(now);
