@@ -10,7 +10,8 @@ Question 1 (test_20260930/q1)
 I tried 2 implementations as answer:
 - ProbabilisticRandomGenImplBasic: as the name implies, a basic algorithm where at each iteration I draw a random single and determine its position in a sorted list of accumulated probability, so a little expensive each time ;
 - ProbabilisticRandomGenImpl: a more direct access one, at construction I build an array of "number" where the probability to draw an index of the array if the one given in NumAndProbability. so the cost of computation is minimal but the storage and its access can be a problem given what deviation of the real probabilities we can accept (a more little array grants better access but is less precise).
-For both, I didn't really care about multithreading, since there is no sharing of resource in write mode.
+
+For both, I didn't do much about multithreading, since there is no sharing of resource in write mode.
 
 Question 2 (test_20260930/q2)
 
