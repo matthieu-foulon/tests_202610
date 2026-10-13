@@ -21,7 +21,7 @@ Published events are stored in a BlockingCollection which handles synchronizatio
 Question 3 (test_20260930/q3)
 
 Again 2 kinds:
-- ThrottlerImpl: token bucket.
+- ThrottlerImpl: token bucket. warning: I forgot the limitation in time.
 - ThrottlerSlidingWindow: sliding window.
 Both use a thread for bucket filling or clean old time.
 
