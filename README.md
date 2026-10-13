@@ -33,3 +33,6 @@ Question 4 (test_20260930/q4)
 
 One implementation which accumulates integers and where we can ask for statistics at any time.
 Handles multiple clients through the event bus of q2, since the data of the event are for reading, there is no data to protect in a multi thread context.
+
+
+time taken : approx. 2 days
