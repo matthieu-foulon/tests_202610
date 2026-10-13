@@ -3,7 +3,7 @@
 public interface SlidingWindowStatistics
 {
     void add(int measurement);
-    void subscribeForStatistics<T>(T subscriber, Action<Statistics> action) where T : class;
+    void subscribeForStatistics(Action<Statistics> action);
     Statistics getLatestStatistics();
 
     public interface Statistics

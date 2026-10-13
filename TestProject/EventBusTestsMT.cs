@@ -1,42 +1,54 @@
 ﻿using FluentAssertions;
 using hsbc_test_20260930.interfaces;
-using hsbc_test_20260930.q2;
+using test_20260930.q2;
+
+namespace TestProject;
 
 public class EventBusTestsMT
 {
-    private readonly EventBus _eventBus;
+    const string _topic = "topic";
+    private readonly EventBusStr _eventBus;
 
     public EventBusTestsMT()
     {
-        // Remplacez par votre classe concrète (ex: MyEventBus)
-        _eventBus = new EventBusMT();
+        _eventBus = new EventBusStrMT();
     }
 
-    // Classe de test d'exemple
     public record OrderCreatedEvent(Guid OrderId, decimal Amount);
 
     [Fact]
     public async Task AddSubscriber_ShouldReceiveEvent_WhenEventIsPublished()
     {
-        // Arrange
         var tcs = new TaskCompletionSource<OrderCreatedEvent>();
         var expectedEvent = new OrderCreatedEvent(Guid.NewGuid(), 150.00m);
 
-        _eventBus.addSubscriber<OrderCreatedEvent>(ev => tcs.SetResult(ev));
+        _eventBus.addSubscriber(_topic, ev => tcs.SetResult((OrderCreatedEvent)ev));
 
-        // Act
-        _eventBus.publishEvent(expectedEvent);
+        _eventBus.publishEvent(_topic, expectedEvent);
 
-        // Assert
-        // On attend la réponse, mais on met une sécurité (timeout de 2 secondes max)
         var delayTask = Task.Delay(TimeSpan.FromSeconds(2));
         var completedTask = await Task.WhenAny(tcs.Task, delayTask);
 
-        // Si c'est le delay qui a fini en premier, c'est que le test a expiré
-        completedTask.Should().Be(tcs.Task, "l'événement aurait dû être reçu avant le timeout");
+        completedTask.Should().Be(tcs.Task, "timeout");
 
         var receivedEvent = await tcs.Task;
         receivedEvent.Should().NotBeNull();
         receivedEvent.OrderId.Should().Be(expectedEvent.OrderId);
+    }
+
+    [Fact]
+    public async Task AddSubscriber_ShouldReceiveEvent_Timeout()
+    {
+        var tcs = new TaskCompletionSource<OrderCreatedEvent>();
+        var expectedEvent = new OrderCreatedEvent(Guid.NewGuid(), 150.00m);
+
+        _eventBus.addSubscriber(_topic, ev => tcs.SetResult((OrderCreatedEvent)ev));
+
+        var delayTask = Task.Delay(TimeSpan.FromSeconds(2));
+        var completedTask = await Task.WhenAny(tcs.Task, delayTask);
+
+        completedTask.Should().Be(delayTask, "timeout");
+
+        tcs.Task.IsCompleted.Should().BeFalse();
     }
 }

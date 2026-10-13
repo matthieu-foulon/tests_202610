@@ -6,19 +6,17 @@ namespace BenchProject;
 
 public class ProbabilisticRandomGenBench
 {
-    private readonly ProbabilisticRandomGenImpl v1;
-    private readonly ProbabilisticRandomGenImpl2 v2;
-    private readonly ProbabilisticRandomGenImpl3 v3;
-    private readonly ProbabilisticRandomGenImpl3 v4;
+    private readonly ProbabilisticRandomGenImplBasic v1;
+    private readonly ProbabilisticRandomGenImpl v2;
+    private readonly ProbabilisticRandomGenImpl v3;
 
     public ProbabilisticRandomGenBench()
     {
         List<NumAndProbability> probs = [new(0, 50), new(1, 200), new(2, 100)];
 
         v1 = new(probs);
-        v2 = new(probs);
-        v3 = new(probs, 1000000);
-        v4 = new(probs, 1024);
+        v2 = new(probs, 1000000);
+        v3 = new(probs, 1024);
     }
 
     [Benchmark]
@@ -29,7 +27,4 @@ public class ProbabilisticRandomGenBench
 
     [Benchmark]
     public int V3() => v3.nextFromSample();
-
-    [Benchmark]
-    public int V4() => v4.nextFromSample();
 }

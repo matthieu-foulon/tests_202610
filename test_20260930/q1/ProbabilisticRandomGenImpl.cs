@@ -1,57 +1,49 @@
 ﻿using hsbc_test_20260930.interfaces;
-using System.Collections;
 using static hsbc_test_20260930.interfaces.ProbabilisticRandomGen;
 
 namespace hsbc_test_20260930.q1;
 
 /// <summary>
-/// basic implementation where we accumulate the probability in a buffer,
-/// take a random number [0..1] and look where this number should fit in the buffer.
-/// we take then the associated value.
+/// we still accumulated the probability into a buffer BUT
+/// we are mapping a random number [0..1] to a unique array index
+/// which contains the associated value, meaning a direct access when calling nextFromSample
 /// </summary>
 public class ProbabilisticRandomGenImpl : ProbabilisticRandomGen
 {
-    private readonly NumAndProbability[] _thresholdData;
+    private readonly int _arraySize;
+    private readonly int[] _filteredData;
 
-    public ProbabilisticRandomGenImpl(List<NumAndProbability> inputData)
+    public ProbabilisticRandomGenImpl(List<NumAndProbability> inputData, int arraySize)
     {
-        _thresholdData = new NumAndProbability[inputData.Count];
+        ArgumentOutOfRangeException.ThrowIfLessThan(arraySize, 1024);
+
+        _arraySize = arraySize;
+        _filteredData = new int[arraySize];
 
         // we will scale if the sum of all probabilities is not 1
         float sum = inputData.Sum(i => i.ProbabilityOfSample);
 
-        // accumulate the probability in the buffer
         float acc = 0f;
+        int startIndex = 0;
         for(int i = 0; i < inputData.Count; ++i)
         {
             acc += inputData[i].ProbabilityOfSample / sum;
-
-            // ensure no floating point error for the last entry
             if ( i == inputData.Count - 1 )
             {
                 acc = 1.0f;
             }
 
-            _thresholdData[i] = new(inputData[i].Number, acc);
+            int endIndex = (int)( acc * arraySize );
+            for( ; startIndex < endIndex; ++startIndex )
+            {
+                _filteredData[startIndex] = inputData[i].Number;
+            }
         }
     }
 
     public int nextFromSample()
     {
-        float rand = Random.Shared.NextSingle();
-        int index = Array.BinarySearch(_thresholdData, rand, new ProbabilisticClass());
-        if ( index < 0 )
-        {
-            index = ~index;
-        }
-        return _thresholdData[index].Number;
-    }
-
-    public class ProbabilisticClass : IComparer
-    {
-        int IComparer.Compare(object? x, object? y)
-        {
-            return (x as NumAndProbability).ProbabilityOfSample.CompareTo((float)y);
-        }
+        int index = Random.Shared.Next(_arraySize);
+        return _filteredData[index];
     }
 }

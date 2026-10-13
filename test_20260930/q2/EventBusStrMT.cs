@@ -9,27 +9,17 @@ namespace test_20260930.q2;
 
 public class EventBusStrMT : EventBusStr
 {
-    /// <summary>
-    /// allow to hide further predicate and action real type
-    /// behind a simple method.
-    /// </summary>
     private interface ISubscription
     {
         void Handle(object message);
     }
 
-    /// <summary>
-    /// store callback and predicate given a event T.
-    /// we consider a subscription unique if both the callback and the predicate
-    /// are equal.
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    private class Subscription<T> : ISubscription where T : class
+    private class Subscription : ISubscription
     {
-        private readonly Func<T, bool> _predicate;
-        private readonly Action<T> _action;
+        private readonly Func<object, bool> _predicate;
+        private readonly Action<object> _action;
 
-        public Subscription(Func<T, bool> predicate, Action<T> action)
+        public Subscription(Func<object, bool> predicate, Action<object> action)
         {
             _predicate = predicate ?? ( _ => true );
             _action = action;
@@ -37,15 +27,15 @@ public class EventBusStrMT : EventBusStr
 
         public void Handle(object message)
         {
-            if ( message is T typedMessage && _predicate(typedMessage) )
+            if ( _predicate(message) )
             {
-                _action(typedMessage);
+                _action(message);
             }
         }
 
         public override bool Equals(object? obj)
         {
-            return obj is Subscription<T> other
+            return obj is Subscription other
                 && Delegate.Equals(_action, other._action)
                 && Delegate.Equals(_predicate, other._predicate);
         }
@@ -125,9 +115,9 @@ public class EventBusStrMT : EventBusStr
             {
                 try
                 {
-                    // we can really do more in case of an unresponsive subscriber
+                    // we can't really do more in case of an unresponsive subscriber
                     // c# did remove killing a thread, so we hope this is not taking to much time
-                    currentSubscriber.Handle(message);
+                    currentSubscriber.Handle(message.Item2);
                 }
                 catch
                 {
@@ -147,7 +137,7 @@ public class EventBusStrMT : EventBusStr
 
         var subscribers = _subscriptions.GetOrAdd(topic, static _ => []);
 
-        var subscription = new Subscription<object>(predicate, action);
+        var subscription = new Subscription(predicate, action);
 
         lock ( subscribers )
         {

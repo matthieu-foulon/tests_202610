@@ -2,6 +2,8 @@
 using hsbc_test_20260930.interfaces;
 using hsbc_test_20260930.q1;
 
+namespace TestProject;
+
 public class ProbabilisticRandomGenTests
 {
     private static List<ProbabilisticRandomGen.NumAndProbability> samples =
@@ -13,9 +15,9 @@ public class ProbabilisticRandomGenTests
 
     public static IEnumerable<object[]> GetImplementations()
     {
-        yield return new object[] { new ProbabilisticRandomGenImpl(samples) };
-        yield return new object[] { new ProbabilisticRandomGenImpl2(samples) };
-        yield return new object[] { new ProbabilisticRandomGenImpl3(samples, 1024) };
+        yield return new object[] { new ProbabilisticRandomGenImplBasic(samples) };
+        yield return new object[] { new ProbabilisticRandomGenImpl(samples, 1000000) };
+        yield return new object[] { new ProbabilisticRandomGenImpl(samples, 1024) };
     }
 
 
