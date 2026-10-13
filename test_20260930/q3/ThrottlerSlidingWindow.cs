@@ -1,72 +1,122 @@
-﻿using System;
+﻿using hsbc_test_20260930.interfaces;
+using System;
 using System.Collections.Generic;
 using System.Text;
+using static hsbc_test_20260930.interfaces.Throttler;
 
 namespace hsbc_test_20260930.q3;
 
-public class ThrottlerSlidingWindow
+public class ThrottlerSlidingWindow : Throttler
 {
     private readonly Lock _lock = new();
     private readonly RingBuffer<DateTime> _slidingWindow;
     private readonly int _maxTokens;
     private readonly TimeSpan _timeSpan;
-    private readonly Thread _thread;
+    private Thread _thread;
+    private CancellationTokenSource _cancellationTokenSource;
     private DateTime _startTime;
+    private int _isStarted = 0;
 
     public event EventHandler? OnTokenAvailable;
 
-    public ThrottlerSlidingWindow(int maxTokens, TimeSpan timeSpan)
+    public ThrottlerSlidingWindow(int maxTokens, TimeSpan timeSpan, bool start = false)
     {
         _slidingWindow = new(maxTokens);
         _maxTokens = maxTokens;
         _timeSpan = timeSpan;
-        _thread = new(() =>
+        if ( start )
         {
-            Update();
-        });
-        Start();
-    }
-
-    public bool TryGetToken()
-    {
-        DateTime now = DateTime.Now;
-
-        using var scope = _lock.EnterScope();
-
-        Clean(now);
-
-        if ( HasAvailableToken )
-        {
-            _slidingWindow.Put(now);
-            return true;
-        }
-        else
-        {
-            return false;
+            Start();
         }
     }
 
-    private void Start()
+    public ThrottleResult shouldProceed()
     {
-        _startTime = DateTime.Now;
-        _thread.Start();
+        lock ( _lock )
+        {
+            DateTime now = DateTime.Now;
+
+            Clean(now);
+
+            if ( HasAvailableToken )
+            {
+                _slidingWindow.Put(now);
+                return ThrottleResult.PROCEED;
+            }
+            else
+            {
+                return ThrottleResult.DO_NOT_PROCEED;
+            }
+        }
+    }
+
+    public void Start()
+    {
+        if ( Interlocked.CompareExchange(ref _isStarted, 1, 0) == 0 )
+        {
+            _cancellationTokenSource = new();
+            _startTime = DateTime.Now;
+            _thread = new(() =>
+            {
+                Update(_cancellationTokenSource.Token);
+            });
+            _thread.Start();
+        }
+    }
+
+    public void Stop()
+    {
+        if ( Interlocked.CompareExchange(ref _isStarted, 0, 1) == 1 )
+        {
+            _cancellationTokenSource.Cancel();
+            _cancellationTokenSource.Dispose();
+
+            _thread.Join();
+        }
+    }
+
+    public int TokenCount
+    {
+        get
+        {
+            lock ( _lock )
+            {
+                return _maxTokens - _slidingWindow.Length;
+            }
+        }
+    }
+
+    public virtual void notifyWhenCanProceed()
+    {
     }
 
     private bool HasAvailableToken => _slidingWindow.Length < _maxTokens;
 
-    private void Update()
+    private void Update(CancellationToken token)
     {
-        DateTime now = DateTime.Now;
-
-        using var scope = _lock.EnterScope();
-
-        Clean(now);
-
-        // someone subscribed to the event and is there at least one token available
-        if ( OnTokenAvailable != null && HasAvailableToken )
+        while ( !token.IsCancellationRequested )
         {
-            _slidingWindow.Put(now);
-            OnTokenAvailable.Invoke(this, EventArgs.Empty);
+            try
+            {
+                lock ( _lock )
+                {
+                    DateTime now = DateTime.Now;
+
+                    Clean(now);
+
+                    if ( OnTokenAvailable != null && HasAvailableToken )
+                    {
+                        _slidingWindow.Put(now);
+                        OnTokenAvailable.Invoke(this, EventArgs.Empty);
+                    }
+                }
+
+                Thread.Sleep(1);
+            }
+            catch ( OperationCanceledException )
+            {
+                break;
+            }
         }
     }
 

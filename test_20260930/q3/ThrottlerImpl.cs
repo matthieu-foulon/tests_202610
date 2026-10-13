@@ -10,42 +10,92 @@ public class ThrottlerImpl : Throttler
     private object _lock = new();
     private readonly double _maxTokens;
     private readonly double _refillRate;
-    private readonly Thread _thread;
+    private Thread _thread;
+    private CancellationTokenSource _cancellationTokenSource;
     private double _tokens;
-    DateTime _lastRefillTime;
+    private DateTime _lastRefillTime;
+    private int _isStarted = 0;
 
-    public ThrottlerImpl(int initTokens, int maxTokens, TimeSpan timeSpan)
+    /// <summary>
+    ///
+    /// </summary>
+    /// <param name="initTokens"></param>
+    /// <param name="maxTokens"></param>
+    /// <param name="timeSpan"></param>
+    /// <param name="start"></param>
+    public ThrottlerImpl(int initTokens, int maxTokens, TimeSpan timeSpan, bool start = false)
     {
         _maxTokens = maxTokens;
-        _refillRate = (double)maxTokens / timeSpan.Nanoseconds;
-        _tokens = initTokens;
-        _thread = new(() =>
+        _refillRate = (double)maxTokens / timeSpan.TotalNanoseconds;
+        _tokens = initTokens < maxTokens ? initTokens : maxTokens;
+        if ( start )
         {
-            Update();
-        });
-        Start();
+            Start();
+        }
     }
 
-    private void Start()
+    public void Start()
     {
-        _lastRefillTime = DateTime.Now;
-        _thread.Start();
-    }
-
-    private void Update()
-    {
-        lock ( _lock )
+        if ( Interlocked.CompareExchange(ref _isStarted, 1, 0) == 0 )
         {
-            DateTime now = DateTime.Now;
-            double elapsed = ( now - _lastRefillTime ).TotalNanoseconds;
-            _lastRefillTime = now;
-
-            _tokens = Math.Min(_maxTokens, _tokens + elapsed * _refillRate);
-
-            if ( _tokens > 1.0 )
+            _cancellationTokenSource = new();
+            _lastRefillTime = DateTime.Now;
+            _thread = new(() =>
             {
-                _tokens -= 1.0;
-                notifyWhenCanProceed();
+                Update(_cancellationTokenSource.Token);
+            });
+            _thread.Start();
+        }
+    }
+
+    public void Stop()
+    {
+        if ( Interlocked.CompareExchange(ref _isStarted, 0, 1) == 1 )
+        {
+            _cancellationTokenSource.Cancel();
+            _cancellationTokenSource.Dispose();
+
+            _thread.Join();
+        }
+    }
+
+    private void Update(CancellationToken token)
+    {
+        while ( !token.IsCancellationRequested )
+        {
+            try
+            {
+                lock ( _lock )
+                {
+                    DateTime now = DateTime.Now;
+                    double elapsed = ( now - _lastRefillTime ).TotalNanoseconds;
+                    _lastRefillTime = now;
+
+                    _tokens = Math.Min(_maxTokens, _tokens + elapsed * _refillRate);
+
+                    if ( _tokens > 1.0 )
+                    {
+                        _tokens -= 1.0;
+                        notifyWhenCanProceed();
+                    }
+                }
+
+                Thread.Sleep(1);
+            }
+            catch ( OperationCanceledException )
+            {
+                break;
+            }
+        }
+    }
+
+    public int TokenCount
+    {
+        get
+        {
+            lock ( _lock )
+            {
+                return (int)_tokens;
             }
         }
     }

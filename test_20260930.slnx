@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="README.md" />
+  </Folder>
   <Project Path="BenchProject/BenchProject.csproj" Id="9ab80d2f-945f-44ae-921e-6965edb533fa" />
   <Project Path="TestProject/TestProject.csproj" Id="c8c4d936-e1b9-465c-becd-cdb82bf5a4b0" />
   <Project Path="test_20260930/test_20260930.csproj" />
